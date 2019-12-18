@@ -1,7 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
-using Newtonsoft.Json;
 using System.IO;
+using System.Net;
 using System.Runtime;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -9,6 +9,8 @@ using OpenQA.Selenium.Support.UI;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Toxy;
+using Toxy.Parsers;
 using Gurus.Utils;
 using Gurus.Models;
 using Gurus.Controllers;
@@ -17,8 +19,58 @@ namespace Gurus.Controllers
 {
     public class ExternalConnection
     {
-        ChromeDriver _driver = new ChromeDriver("C:\\Aplics\\ChromeDriver");
-        const int NMAX_PAGES = 1;
+        ChromeDriver _driver = null;
+
+        bool _useSelenium = false;
+
+        dynamic _source = null;
+        
+        const int NMAX_PAGES = 0;
+        const int NMAX_PERSONS = 5;
+
+        public ExternalConnection(dynamic source)
+        {
+            _source = source;
+            OpenDriver();
+            
+        }
+
+        public void OpenDriver(bool incongnito = false)
+        {
+            bool useSelenium = _source.useSelenium ?? false;
+
+            if(useSelenium)
+            {
+                ChromeOptions options = new ChromeOptions();
+                if(incongnito)
+                {
+                    options.AddArguments("--incognito");
+                }
+                _driver = new ChromeDriver("C:\\Aplics\\ChromeDriver", options);
+            }
+        }
+
+        public void CloseDriver()
+        {
+            if(_driver != null)
+                _driver.Close();
+        }
+
+        public void RestartDriver(bool incongnito = false)
+        {
+            CloseDriver();
+            OpenDriver(incongnito);
+        }
+
+        public void ClearCacheAndCookies()
+        {
+            _driver.Manage().Cookies.DeleteAllCookies();
+            System.Threading.Thread.Sleep(1000);
+            _driver.Navigate().GoToUrl("chrome://settings/clearBrowserData");
+            System.Threading.Thread.Sleep(5000);
+            _driver.FindElementByXPath("//settings-ui").SendKeys(Keys.Enter);
+        }
+
 
         private bool Login(dynamic login)
         {
@@ -36,7 +88,9 @@ namespace Gurus.Controllers
                 {
                     emailTextBox = _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", login.user.tag)));
                     passTextBox = _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", login.pass.tag)));
-                    signUpButton = _driver.FindElement(By.ClassName(string.Format("{0}", login.submit)));
+                    //signUpButton = _driver.FindElement(By.ClassName(string.Format("{0}", login.submit)));
+                    signUpButton = _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}'] | .//*[@class='{0}']", login.submit)));
+
                     success = true;
                 }
                 catch(Exception)
@@ -56,107 +110,303 @@ namespace Gurus.Controllers
         }
 
 
-        public List<Person> FetchData()
+        public List<Person> FetchPersonData()
         {
-            string cfgFile = File.ReadAllText("Sources.txt");
-            dynamic sources = JsonConvert.DeserializeObject(cfgFile);
-
-            DateTime timestamp = DateTime.Now;
-
             List<Person> lstPersons = new List<Person>();
 
-            foreach(var src in sources)
+            if((bool)_source.active)
             {
-                 if(!Login(src.login))
+                if(!Login(_source.login))
                     throw new Exception("Error on login");
 
-                foreach(var keyword in src.keywords)
+                if(_source.searchby == "keywords")
                 {
-                    for(int n = 0; n <= NMAX_PAGES; n++)
+                    foreach(var keyword in _source.keywords)
                     {
-                        string url = (string)src.url;
-                        
-                        Console.WriteLine(string.Format("===>> GET: {0}", url));
-
-                        string key = (string)keyword;
-                        url = url.Replace("{{keyword}}", key).Replace("{{pageNumber}}", n.ToString());
-
-                        Console.WriteLine(string.Format("===>> GET: {0}", url));
-                        
-                        _driver.Navigate().GoToUrl(url);
-                        string html = _driver.PageSource;
-
-                        Console.WriteLine((string)src.listResults);
-
-                        ReadOnlyCollection<IWebElement> itemList = _driver.FindElements(By.ClassName((string)src.listResults));
-                        //if(itemList.Count == 0)
-                        //    itemList = _driver.FindElementsByCssSelector("li");
-
-                        foreach(var item in itemList)
+                        for(int n = 0; n <= NMAX_PAGES; n++)
                         {
-                            Person person = new Person();
-
-                            person.Search = keyword;
-                            person.Timestamp = timestamp;
-
-                            string className = (string)src.name.cssClass;
-                            string attribute = (string)src.name.attribute;
-                            person.Name = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
-
-                            className = (string)src.position.cssClass;
-                            attribute = (string)src.position.attribute;
-                            person.Position = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
+                            string url = (string)_source.url;
                             
+                            Console.WriteLine(string.Format("===>> GET: {0}", url));
 
-                            className = (string)src.location.cssClass;
-                            attribute = (string)src.location.attribute;
-                            person.Location = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
+                            string key = (string)keyword;
+                            url = url.Replace("{{keyword}}", key).Replace("{{pageNumber}}", n.ToString());
+
+                            Console.WriteLine(string.Format("===>> GET: {0}", url));
                             
-
-                            className = (string)src.photo.cssClass;
-                            attribute = (string)src.photo.attribute;
-                            person.Photo = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
+                            _driver.Navigate().GoToUrl(url);
                             
-                            className = (string)src.link.cssClass;
-                            attribute = (string)src.link.attribute;
-                            person.URL = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
-
-                            try
-                            {
-                                className = (string)src.id.cssClass;
-                                attribute = (string)src.id.attribute;
-                                person.Id = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
-                            }
-                            catch(Exception)
-                            {
-                                person.Id = person.URL;
-                            }
-
-                            className = (string)src.distance.cssClass;
-                            attribute = (string)src.distance.attribute;
-                            person.Distance = item.FindElement(By.ClassName(className)).GetAttribute(attribute);
-
-                            //Format data
-                            person.Name = person.Name.Replace(person.Distance, "");
-
-
-                            //Output results
-                            Console.WriteLine(string.Format("» Name: {0} / Position: {1} / URL: {2} / Distance: {3} / Photo: {4} / Location: {5}", person.Name, person.Position, person.URL, person.Distance, person.Photo, person.Location));
-
-                            lstPersons.Add(person);
+                            lstPersons.AddRange(GetPersons());                               
                         }
-                        
                     }
                 }
-                
-            }   
+                else if(_source.searchby == "dates")
+                {
+                    int N_MONTHS = 1;
+
+                    string url = (string)_source.url;
+                            
+                    Console.WriteLine(string.Format("===>> GET: {0}", url));
+
+                    DateTime dtInit = new DateTime(2010,1,1);
+                    DateTime dtEnd = dtInit.AddMonths(N_MONTHS);
+
+                    while(dtEnd < DateTime.Now)
+                    {
+                        _driver.Navigate().GoToUrl(url);
+
+                        dtInit = dtEnd.AddDays(1);
+                        dtEnd = dtInit.AddMonths(N_MONTHS);
+
+                        IWebElement dtInitTextBox = null;
+                        IWebElement dtEndTextBox = null;
+                        IWebElement searchButton = null;
+                        try
+                        {
+                            dtInitTextBox = _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", _source.dates[0])));
+                            dtEndTextBox = _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", _source.dates[1])));
+                            searchButton = _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", _source.searchButton)));
+                        }
+                        catch(Exception){}
+
+                        dtInitTextBox.SendKeys(dtInit.ToString("dd/MM/yyyy"));
+                        dtEndTextBox.SendKeys(dtEnd.ToString("dd/MM/yyyy"));
+                        searchButton.Click();        
+
+                        lstPersons.AddRange(GetPersons());
+                    }
+                }
+            }
+            
 
             return lstPersons;
         }
 
-        public void Close()
+        public List<Attatchment> FetchAttachementsData()
         {
-            _driver.Close();
+            string index = _source.index;
+            Elastic elastic = new Elastic(index);
+
+            List<Attatchment> lstAttachments = new List<Attatchment>();
+
+            int id = _source.initialId ?? 0;
+
+            WebClient wc = new WebClient();
+
+            bool end = false;
+            do
+            {
+                try
+                {
+                    var tempFileName = Path.GetTempFileName();
+                    string url = _source.url ?? "{0}";
+                    url = string.Format(url, id++);
+                    Console.WriteLine("=> Get " + url);
+
+                    wc.DownloadFile(url, tempFileName);
+                    var mimeType = wc.ResponseHeaders["content-type"];
+                    Console.WriteLine("=> Mimetype " + mimeType);
+                    var fileName = wc.ResponseHeaders["Content-Disposition"].Substring(wc.ResponseHeaders["Content-Disposition"].IndexOf("filename=") + 9).Replace("\"", "");
+                    Console.WriteLine("=> Filename " + fileName);
+
+                    if(string.IsNullOrEmpty(mimeType))
+                        end = true;
+                    
+                    var body = string.Empty;
+
+                    if(fileName.ToLower().EndsWith(".pdf"))
+                    {
+                        var pdf = new PDFTextParser(new Toxy.ParserContext(tempFileName));
+                        body = pdf.Parse();
+                    }
+                    else if(fileName.ToLower().EndsWith(".docx"))
+                    {
+                        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                        var docx = new Word2007TextParser(new Toxy.ParserContext(tempFileName));
+                        body = docx.Parse();
+                    }
+                    else if(fileName.ToLower().EndsWith(".rtf"))
+                    {
+                        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                        var rtf = new RTFTextParser(new Toxy.ParserContext(tempFileName));                        
+                        body = rtf.Parse();
+                    }
+                    else if(fileName.ToLower().EndsWith(".doc"))
+                    {
+                        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                        var doc = new Word2003TextParser(new Toxy.ParserContext(tempFileName));
+                        
+                        body = doc.Parse();
+                    }
+
+                    Attatchment attatch = new Attatchment(id.ToString(), fileName, url, mimeType, body, DateTime.Now);
+                    elastic.SaveItem(attatch);
+
+                    //lstAttachments.Add(attatch);
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+                
+            } while (!end);
+
+            return lstAttachments;
+        }
+
+        public List<Person> GetPersons()
+        {
+            List<Person> lstPersons = new List<Person>();
+
+            int idx = 0;
+            ReadOnlyCollection<IWebElement> itemList = null;
+
+            do
+            {
+                itemList = _driver.FindElements(By.ClassName((string)_source.listResults));
+                if(itemList.Count == 0)
+                    itemList = _driver.FindElements(By.XPath((string)_source.listResults));
+                    
+                dynamic item = itemList[idx++];
+
+                try
+                {
+                    //Check if it's a button link, and in that case click on this option
+                    item.Click();
+
+                    //Follow the link to the personal data section
+                    _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", _source.personalDataSection))).Click();
+                    item = _driver;
+                }
+                catch(Exception){}
+
+                Person person = new Person();
+
+                person.Source = (string)_source.source;
+
+                person.Search = _source.keyword;
+                person.Timestamp = DateTime.Now;
+
+                person.Id = GetAttribute(item, _source.id);
+                person.Name = GetAttribute(item, _source.name);
+                person.Position = GetAttribute(item, _source.position);
+                person.Location = GetAttribute(item, _source.location);
+                person.Photo = GetAttribute(item, _source.photo);
+                person.URL = GetAttribute(item, _source.link);
+                person.Email = GetAttribute(item, _source.email);
+                person.Phone = GetAttribute(item, _source.phone);
+                
+                try
+                {
+                    string birthday = GetAttribute(item, _source.birthday);
+                    if(!string.IsNullOrEmpty(birthday))
+                        person.Birthday = DateTime.ParseExact(birthday, "dd/MM/yyyy", null);
+                }
+                catch(Exception){}
+
+                person.Distance = GetAttribute(item, _source.distance);
+
+                if(string.IsNullOrEmpty(person.Id) && !string.IsNullOrEmpty(person.URL))
+                    person.Id = person.URL;
+                else
+                    person.Id = Guid.NewGuid().ToString();
+
+                if(!string.IsNullOrEmpty(person.Distance))
+                    person.Name = person.Name.Replace(person.Distance, "");
+                
+                //Go to back in history
+                _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", "ctl00_ContentPlaceHolder1_HumanRe_sourceFile1_ImageButton2"))).Click();
+
+                //Get contacts
+                _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", "ctl00_ContentPlaceHolder1_HumanRe_sourceFile1_BtInterview"))).Click();
+                person.Contacts.Add(new Contact(GetAttribute(_driver, _source.contacts)));
+
+                //Go to back in history
+                _driver.FindElement(By.XPath(string.Format(".//*[@id='{0}']", "ctl00_ContentPlaceHolder1_HumanRe_sourceFile1_ImageButton2"))).Click();
+
+                //Get Attatchements
+
+                //Output results
+                Console.WriteLine(string.Format("» Name: {0} / Position: {1} / URL: {2} / Distance: {3} / Photo: {4} / Location: {5}", person.Name, person.Position, person.URL, person.Distance, person.Photo, person.Location));
+
+                if(!string.IsNullOrEmpty(person.Id))
+                    lstPersons.Add(person);
+            }
+            while(idx < 5);//itemList.Count);
+
+            return lstPersons;
+        }
+
+        private string GetAttribute(dynamic item, dynamic metadata)
+        {
+            string result = string.Empty;
+
+            //try
+            //{
+                if(metadata != null)
+                {
+                    string elem = string.Join((string)metadata.cssClass, (string)metadata.id);
+                    string attribute = (string)metadata.attribute;
+                    if(!string.IsNullOrEmpty(elem))
+                        result = item.FindElement(By.XPath(string.Format(".//*[@id='{0}'] | .//*[@class='{0}']", elem))).GetAttribute(attribute);
+
+                    int positionOfNewLine = result.IndexOf("\r\n");
+                    if (positionOfNewLine >= 0)
+                    {
+                        result = result.Substring(0, positionOfNewLine);
+                    }
+                }
+            //}
+            //catch(Exception){}
+
+            return result;
+        }
+
+        public void GetAttatchments(ref List<Person> lstPersons)
+        {
+
+            int counter = 0;
+
+            foreach(Person p in lstPersons)
+            {
+                bool clearCache = _source.clearcache ?? false;
+
+                if((counter == 0 || counter % 10 == 0) && clearCache)
+                {
+                    ClearCacheAndCookies();
+                    RestartDriver(true);
+                }
+
+                if(!string.IsNullOrEmpty(p.URL))
+                {
+                    string className = string.Empty;
+                    string attribute = string.Empty;
+
+                    if(_source.detail != null)
+                    {
+                        className = (string)_source.detail.cssClass;
+                        attribute = (string)_source.detail.attribute;
+                    }
+
+                    _driver.Navigate().GoToUrl(p.URL); 
+                    System.Threading.Thread.Sleep(1000);
+
+                    Console.WriteLine(string.Format("_source: {0} / cssClass: {1} / attribute: {2}", p.Source, className, attribute));          
+
+                    try
+                    {
+                        string detail = _driver.FindElement(By.ClassName(className)).GetAttribute(attribute);
+
+                        string id = Guid.NewGuid().ToString();
+                        string filetype = "html";
+
+                        Attatchment attach = new Attatchment(id, p.Source, p.URL, filetype, detail, DateTime.Now);
+
+                        p.Attatchments.Add(attach);
+                    }
+                    catch(Exception){}
+                }
+            }
         }
     }
 

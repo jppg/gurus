@@ -9,7 +9,7 @@ namespace Gurus.Utils
 {
     public class Cryptography
     {
-        static string Passphrase = "#dLj-e7Yx8CkQkYBTh+2=$w^xwK&xC&!^BeKr?a^-vdqWC&Rnc-6N#yBq6BANxmmgZ-XBGBQzv6U-UezkQyVj7*#9wa+b9Mmc++uuu#r!4q!uHgUny%j!cG8B4LWz*@L$hhunrSRrXMr&fE_K9K7^4%EuVz^yhLnGC6Aqf58bGr8p24SKp+eR=&PVax%yrJQNJX+YXw*5C*?sFWNtNuH%r69ZDFCQ!Z+a$=V5R87c@c3LD+!JEUNVwgH6p9=$$_+";
+        static string Passphrase = File.ReadAllText("Passphrase.txt");
 
         public static string DecryptString(string Message)
         {

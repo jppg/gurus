@@ -9,32 +9,43 @@ namespace Gurus.Controllers
     public class Elastic
     {
         private string _address = "http://localhost:9200";
-        private string _index = "people";
+        private string _index = string.Empty;
         private int _timeoutMinutes = 2;
 
         private ElasticLowLevelClient elastic = null;
         //https://www.elastic.co/guide/en/elasticsearch/client/net-api/master/elasticsearch-net-getting-started.html
 
-        public Elastic()
+        public Elastic(string index)
         {
+            _index = index;
+
             var settings = new ConnectionConfiguration(new Uri(_address))
                 .RequestTimeout(TimeSpan.FromMinutes(_timeoutMinutes));
 
             elastic = new ElasticLowLevelClient(settings);
         }
 
-        public bool SaveList(List<Person> lstToSave)
+        //public bool SaveList(List<Person> lstToSave)
+        public bool SaveList(dynamic lst)
         {
-            foreach(Person p in lstToSave)
+            foreach(var item in lst)
             {
-                var ndexResponse = elastic.Index<BytesResponse>(_index, p.Id, PostData.Serializable(p)); 
+                var ndexResponse = elastic.Index<BytesResponse>(_index, item.Id, PostData.Serializable(item)); 
                 byte[] responseBytes = ndexResponse.Body;
             }
             return true;
         }
 
+        public bool SaveItem(dynamic item)
+        {
+            var ndexResponse = elastic.Index<BytesResponse>(_index, item.Id, PostData.Serializable(item)); 
+            return true;
+        }
+
         public BytesResponse DeleteAllIndex()
         {
+            //https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-delete-by-query.html
+
             return elastic.DeleteByQuery<BytesResponse>(_index, PostData.Serializable(new
                             {
                                 query = new

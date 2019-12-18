@@ -6,6 +6,7 @@ namespace Gurus.Models
     public class Person
     {
         public string Id {get; set;}
+        public string Source {get; set;}
         public DateTime Timestamp {get; set;}
         public string Name {get; set;}
         public string Position {get; set;}
@@ -21,7 +22,7 @@ namespace Gurus.Models
         public List<string> Tags {get; set;}
         public List<Alias> Alias {get; set;}
         public List<Contact> Contacts {get; set;}
-        public List<Attatchement> Attatchements {get; set;}
+        public List<Attatchment> Attatchments {get; set;}
 
         public Person()
         {
@@ -39,7 +40,7 @@ namespace Gurus.Models
             Alias = new List<Alias>();
             Tags = new List<string>(); 
             Contacts = new List<Contact>();
-            Attatchements = new List<Attatchement>(); 
+            Attatchments = new List<Attatchment>(); 
         }
 
     }
@@ -67,18 +68,31 @@ namespace Gurus.Models
             Timestamp = timestamp;
             Text = text;
         }
+
+        public Contact(string text)
+        {
+            PointOfContact = "Unknown";
+            Timestamp = DateTime.Now;
+            Text = text;
+        }
     }
 
-    public class Attatchement
+    public class Attatchment
     {
+        public string Id {get; set;}
         public string Name {get; set;}
-        public string Content {get; set;}
+        public string URL {get; set;}
+        public string FileType {get; set;}
+        public string Body {get; set;}
         public DateTime CreationDate {get; set;}
 
-        public Attatchement(string name, string content, DateTime creationDate)
+        public Attatchment(string id, string name, string url, string filetype, string body, DateTime creationDate)
         {
+            Id = id;
             Name = name;
-            Content = content;
+            URL = url;
+            FileType = filetype;
+            Body = body;            
             CreationDate = creationDate;
         }
     }
