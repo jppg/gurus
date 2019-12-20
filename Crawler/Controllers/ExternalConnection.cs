@@ -190,15 +190,18 @@ namespace Gurus.Controllers
             List<Attatchment> lstAttachments = new List<Attatchment>();
 
             int id = _source.initialId ?? 0;
+            int maxRetries = _source.retries ?? 5;
 
             WebClient wc = new WebClient();
 
             bool end = false;
+            int retry = 0;
             do
             {
+                var tempFileName = Path.GetTempFileName();
+
                 try
                 {
-                    var tempFileName = Path.GetTempFileName();
                     string url = _source.url ?? "{0}";
                     url = string.Format(url, id++);
                     Console.WriteLine("=> Get " + url);
@@ -239,17 +242,25 @@ namespace Gurus.Controllers
                         body = doc.Parse();
                     }
 
-                    Attatchment attatch = new Attatchment(id.ToString(), fileName, url, mimeType, body, DateTime.Now);
-                    elastic.SaveItem(attatch);
-
+                    if(!string.IsNullOrEmpty(body))
+                    {
+                        Attatchment attatch = new Attatchment(id.ToString(), fileName, url, mimeType, body, DateTime.Now);
+                        elastic.SaveItem(attatch);
+                    }
+                    retry = 0;
                     //lstAttachments.Add(attatch);
                 }
                 catch(Exception ex)
                 {
                     Console.WriteLine(ex);
+                    retry++;
                 }
+
+                try { File.Delete(tempFileName); }
+                catch { } // best effort
+                tempFileName = null;
                 
-            } while (!end);
+            } while (!end && retry < maxRetries);
 
             return lstAttachments;
         }
