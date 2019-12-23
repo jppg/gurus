@@ -1,0 +1,9 @@
+{
+    "/attatchments": {
+      "target": "http://localhost:9200",
+      "secure": false,
+      "pathRewrite": {
+        "^/attatchments": ""
+      }
+    }
+  }
