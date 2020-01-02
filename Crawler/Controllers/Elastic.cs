@@ -1,6 +1,10 @@
 using System;
+using System.Net;
+using System.Text;
+using System.IO;
 using System.Collections.Generic;
 using Elasticsearch.Net;
+using Newtonsoft.Json.Linq;
 using System.Linq;
 using Gurus.Models;
 
@@ -104,6 +108,60 @@ namespace Gurus.Controllers
             var id = response.Fields.FieldValue<int>(p => p.Id);
             var doubleValue = response.Fields.FieldValue<double>(p => p.DoubleValue);
             */
+        }
+
+        public int GetMaxId()
+        {
+            int result = 0;
+
+            string url = _address + "/" + _index + "/_search";
+
+            HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(url);
+	        httpWebRequest.ContentType = "application/json";
+	        httpWebRequest.Method = "POST";
+	        httpWebRequest.Accept = "application/json";
+	        	        
+	        
+            StringBuilder inputJson = new StringBuilder();
+            inputJson.AppendLine("{");
+            inputJson.AppendLine("\"size\": 1,");
+            inputJson.AppendLine("\"query\":{");
+            inputJson.AppendLine("\"match_all\":{}");
+  	        inputJson.AppendLine("},");
+            inputJson.AppendLine("\"_source\": [\"_id\"],");
+            inputJson.AppendLine("\"sort\": [");
+            inputJson.AppendLine("{");
+            inputJson.AppendLine("\"CreationDate\": {");
+            inputJson.AppendLine("\"order\": \"desc\"");
+            inputJson.AppendLine("}");
+            inputJson.AppendLine("}");
+            inputJson.AppendLine("]");
+            inputJson.AppendLine("}");
+
+            Console.WriteLine(inputJson.ToString());
+	        
+	        using (StreamWriter streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+	        {
+	            streamWriter.Write(inputJson.ToString());
+	            streamWriter.Flush();
+	            streamWriter.Close();
+	        }
+	
+	        HttpWebResponse httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+	        using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+	        {
+	            string response = streamReader.ReadToEnd();
+
+                
+	            
+	            dynamic jsonResult = JObject.Parse(response);
+
+                Console.WriteLine(jsonResult);
+
+                result = (int)jsonResult["hits"]["hits"][0]["_id"];
+            }
+
+            return result;
         }
     }
 }

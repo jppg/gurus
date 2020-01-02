@@ -189,7 +189,10 @@ namespace Gurus.Controllers
 
             List<Attatchment> lstAttachments = new List<Attatchment>();
 
-            int id = _source.initialId ?? 0;
+            int id = elastic.GetMaxId();
+            Console.WriteLine("===> Max id:" + id);
+            Console.ReadKey();
+            
             int maxRetries = _source.retries ?? 5;
 
             WebClient wc = new WebClient();
