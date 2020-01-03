@@ -3,10 +3,10 @@
       <div class="col-lg-12">
           <div class="ibox float-e-margins">
               <div class="ibox-content">
-                  <h2>
+                  <h2 *ngIf="results.hits.total.value > 0">
                       {{results.hits.total.value}} results found for: <span class="text-navy">"{{searchValue}}"</span>
                   </h2>
-                  <small>Request time  ({{results.took}} milliseconds)</small>
+                  <small *ngIf="results.hits.total.value > 0">Request time  ({{results.took}} milliseconds)</small>
       
                   <div class="search-form">
                       <form action="." method="get">
@@ -24,9 +24,9 @@
                     <div class="hr-line-dashed"></div>
                     <div class="search-result">
                         <h4>
-                          <a href="#">{{hit._source.Name}}</a>&nbsp;<span class="badge badge-pill badge-secondary">{{hit._score}}</span>
+                          <a href="{{hit._source.URL}}">{{hit._source.Name}}</a>&nbsp;<span class="badge badge-pill badge-secondary">{{hit._score}}</span>
                         </h4>
-                        <a href="#" class="search-link">{{hit._source.URL}}</a>
+                        <a href="{{hit._source.URL}}" class="search-link">{{hit._source.URL}}</a>
                         <p>
                           {{hit.highlight.Body}}
                         </p>

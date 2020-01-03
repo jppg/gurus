@@ -45,6 +45,7 @@ namespace App.Controllers
   	        inputJson.AppendLine("},");
             inputJson.AppendLine("\"_source\": [\"Name\", \"URL\"],");
             inputJson.AppendLine("\"highlight\" :{");
+            inputJson.AppendLine("\"number_of_fragments\" : 10,");
             inputJson.AppendLine("\"fields\":{");
             inputJson.AppendLine("\"Body\":{}");
             inputJson.AppendLine("}");
