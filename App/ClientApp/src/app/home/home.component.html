@@ -1,21 +1,24 @@
 <div class="container bootstrap snippet">
+  <div>titulo {{ titulo }}</div>
   <div class="row">
       <div class="col-lg-12">
           <div class="ibox float-e-margins">
               <div class="ibox-content">
-                  <h2 *ngIf="results.hits.total.value > 0">
+                  <h2 *ngIf="results && results.hits.total.value > 0">
                       {{results.hits.total.value}} results found for: <span class="text-navy">"{{searchValue}}"</span>
                   </h2>
-                  <small *ngIf="results.hits.total.value > 0">Request time  ({{results.took}} milliseconds)</small>
-      
+                  <small *ngIf="results && results['hits'] && results.hits.total.value > 0">Request time  ({{results.took}} milliseconds)</small>
                   <div class="search-form">
                       <form action="." method="get">
                         <div class="input-group mb-3">
-                          <input #search id="search" name="search" type="text" class="form-control" placeholder="{{searchValue}}" aria-label="Insert text to search here" aria-describedby="button-addon2" >
+                          <input #search id="search" name="search" type="text" class="form-control" placeholder="{{searchValue}}" aria-label="Insert text to search here" aria-describedby="button-addon2" (keyup.enter)="onSubmit(search.value)" >
                           <div class="input-group-append">
                             <button class="btn btn-primary" type="submit" id="button-addon2" (click)="onSubmit(search.value)">Search</button>
                           </div>
                         </div>
+                        <select>
+                          <option ng-repeat="x in feedbackLoV">{{x}}</option>
+                          </select>
                       </form>
                   </div>
 
@@ -24,7 +27,10 @@
                     <div class="hr-line-dashed"></div>
                     <div class="search-result">
                         <h4>
-                          <a href="{{hit._source.URL}}">{{hit._source.Name}}</a>&nbsp;<span class="badge badge-pill badge-secondary">{{hit._score}}</span>
+                          <a href="{{hit._source.URL}}">{{hit._source.Name | striphtml}}</a>&nbsp;
+                          <span class="badge badge-pill badge-secondary">{{hit._score | number}}</span>&nbsp;
+                          <i class="fa fa-thumbs-up fa-1" style="color:gainsboro"></i>&nbsp;
+                          <i class="fa fa-thumbs-down fa-1" style="color:gainsboro"></i>&nbsp;
                         </h4>
                         <a href="{{hit._source.URL}}" class="search-link">{{hit._source.URL}}</a>
                         <p>
@@ -34,7 +40,7 @@
                   </div>
                   
                   
-                  <nav aria-label="Page navigation example">
+                  <nav aria-label="Page navigation example" *ngIf="results.hits.total.value > 0">
                     <ul class="pagination justify-content-center">
                       <li class="page-item disabled">
                         <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>

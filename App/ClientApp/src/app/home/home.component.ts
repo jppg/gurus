@@ -14,8 +14,15 @@ export class HomeComponent implements OnInit {
 
   public results;
   public searchValue;
+  public feedbackValue;
+  public temporalRange;
+  public feedbackLoV;
 
-  constructor(private apiService: ApiService) { }
+  public titulo = 'JP';
+
+  constructor(private apiService: ApiService) { 
+    this.feedbackLoV = ['Positive', 'Negative', 'All'];
+  }
 
   ngOnInit() {
 

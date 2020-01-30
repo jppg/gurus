@@ -6,6 +6,6 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 export class StripHtmlPipe implements PipeTransform {
     transform(value: string): any {
-        return value.replace(/<.*?>/g, ''); // replace tags
+        return decodeURI(value).replace(/<.*?>/g, ''); // replace tags
     }
 }

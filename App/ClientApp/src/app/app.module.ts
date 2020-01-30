@@ -11,6 +11,7 @@ import { CounterComponent } from './counter/counter.component';
 import { FetchDataComponent } from './fetch-data/fetch-data.component';
 import { SearchComponent } from './search/search.component';
 import { DecodeHtmlEntitiesModule} from 'decode-html-entities';
+import {StripHtmlPipe} from '../../pipes/striphtml.pipe';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ import { DecodeHtmlEntitiesModule} from 'decode-html-entities';
     HomeComponent,
     CounterComponent,
     FetchDataComponent,
-    SearchComponent
+    SearchComponent,
+    StripHtmlPipe
   ],
   imports: [
     BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),
