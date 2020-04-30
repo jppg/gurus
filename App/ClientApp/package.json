@@ -28,7 +28,7 @@
     "decode-html-entities": "^1.1.10",
     "elasticsearch": "^16.5.0",
     "font-awesome": "^4.7.0",
-    "jquery": "3.4.1",
+    "jquery": "3.5.0",
     "oidc-client": "^1.9.0",
     "popper.js": "^1.14.3",
     "rxjs": "^6.4.0",
